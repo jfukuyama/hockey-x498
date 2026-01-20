@@ -1,0 +1,30 @@
+---
+title: "Week 2"
+author: "Shiv Chhabria"
+date: "2026-01-20"
+output: html_document
+---
+
+```{r}
+births <- canada_births_1991_2022
+nhl <- nhl_player_births
+
+nhl_can <- subset(nhl, birth_country == "CAN")
+
+min_year <- min(births$year, na.rm = TRUE)
+max_year <- max(births$year, na.rm = TRUE)
+
+nhl_can <- subset(nhl_can, birth_year >= min_year & birth_year <= max_year)
+
+obs <- table(factor(nhl_can$birth_month, levels = 1:12))
+
+pop_month_births <- pop_month_births[as.character(1:12)]
+pop_probs <- pop_month_births / sum(pop_month_births)
+
+chi_res <- chisq.test(x = obs, p = pop_probs)
+
+chi_res
+
+```
+
+Birth month distribution among Canadian born NHL players is significantly different from the Canadian population’s birth month distribution.
