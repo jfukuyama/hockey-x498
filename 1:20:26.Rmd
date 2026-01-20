@@ -1,0 +1,87 @@
+---
+title: "STAT 498 1/20/26"
+author: "Cass Mulgrew"
+date: "2026-01-20"
+output: html_document
+---
+
+Plots of first half vs. second half, plots by quarter, plotting by province - are patterns of first half vs. second half of year the same across provinces?
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+nhlbirths <- read.csv("nhl_player_births.csv")
+```
+
+```{r}
+cannhlbirth <- nhlbirths %>%
+  filter(birth_country == "CAN")
+```
+
+plot of relative probabilities
+
+```{r}
+monthly_probs <- cannhlbirth %>%
+  filter(!is.na(birth_month)) %>%
+  count(birth_month) %>%
+  mutate(prob = n / sum(n))
+
+ggplot(monthly_probs, aes(x = birth_month, y = prob)) +
+  geom_col() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = "Relative Probability of Birth Month", x = "Birth Month", y = "Probability")
+```
+
+
+
+plot of first vs second half 
+
+```{r}
+firsthalf <- nhlbirths %>%
+  mutate(half_year = ifelse(birth_month <= 6, "First Half", "Second Half"))
+
+ggplot(firsthalf, aes(x = half_year)) +
+  geom_bar() +
+  labs(title = "First Half vs Second Half of the Year", x = "Half of Year", y = "Count")
+```
+
+As we can see, there is a significant difference between the amount of players who are Canadian in the NHL who were born in the first half of the year vs. the second half.
+
+Plot of by quarter
+
+```{r}
+canquarter <- cannhlbirth %>%
+  filter(birth_country == "CAN", !is.na(birth_month)) %>%
+  mutate(quarter = paste0("Q", ((birth_month - 1) %/% 3) + 1)) %>%
+  count(quarter) %>%
+  mutate(quarter = factor(quarter, levels = c("Q1","Q2","Q3","Q4")))
+
+ggplot(canquarter, aes(x = quarter, y = n)) +
+  geom_col() +
+  labs(title = "Canadian NHL Players by Birth Quarter", x = "Birth Quarter", y = "Number of Players")
+```
+
+There tends to be more players born in the first quarter than the last quarter
+
+Plot of by birth month by province
+
+```{r}
+can_month_prov <- cannhlbirth %>%
+  filter(
+    birth_country == "CAN",
+    !is.na(birth_month),
+    !is.na(birth_state_province)
+  ) %>%
+  count(birth_state_province, birth_month)
+
+ggplot(can_month_prov,
+       aes(x = birth_month, y = n)) +
+  geom_col() +
+  facet_wrap(~ birth_state_province, scales = "free_y") +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = "Birth Month Distribution of Canadian Hockey Players by Province", x = "Birth Month", y = "Number of Players")
+```
