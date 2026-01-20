@@ -1,0 +1,125 @@
+---
+title: "Combined analysis of hockey data"
+output: html_document
+date: "2026-01-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(ggplot2)
+library(tidyverse)
+```
+
+Read in the data:
+```{r}
+canada_births = read.csv("data/canada_births_1991_2022.csv")
+nhl_births = read.csv("data/nhl_player_births.csv")
+```
+
+# Plotting section
+
+Look at the birth month distribution:
+```{r}
+month_means = aggregate(births ~ month, data = canada_births, FUN = mean)
+month_means
+
+ggplot(month_means, aes(x = month, y = births)) + 
+  geom_line() + 
+  labs(title = "Mean Number of Births by Month", x = "Month", y = "Births")
+```
+
+
+```{r}
+ggplot(canada_births, aes(x = year, y = births, group = month, color = month)) + 
+  geom_line() + 
+  scale_color_viridis_c() + 
+  labs(title = "Canada Births per Month Over Time", x = "Year", y = "Births", caption = "Color Scale based on Month of Birth on 1 to 12 scale")
+```
+
+```{r}
+cannhlbirth <- nhl_births %>%
+  filter(birth_country == "CAN")
+monthly_probs <- cannhlbirth %>%
+  filter(!is.na(birth_month)) %>%
+  count(birth_month) %>%
+  mutate(prob = n / sum(n))
+ggplot(monthly_probs, aes(x = birth_month, y = prob)) +
+  geom_col() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = "Relative Probability of Birth Month", x = "Birth Month", y = "Probability")
+```
+
+```{r}
+firsthalf <- nhl_births %>%
+  mutate(half_year = ifelse(birth_month <= 6, "First Half", "Second Half"))
+
+ggplot(firsthalf, aes(x = half_year)) +
+  geom_bar() +
+  labs(title = "First Half vs Second Half of the Year", x = "Half of Year", y = "Count")
+
+canquarter <- cannhlbirth %>%
+  filter(birth_country == "CAN", !is.na(birth_month)) %>%
+  mutate(quarter = paste0("Q", ((birth_month - 1) %/% 3) + 1)) %>%
+  count(quarter) %>%
+  mutate(quarter = factor(quarter, levels = c("Q1","Q2","Q3","Q4")))
+
+ggplot(canquarter, aes(x = quarter, y = n)) +
+  geom_col() +
+  labs(title = "Canadian NHL Players by Birth Quarter", x = "Birth Quarter", y = "Number of Players")
+```
+
+
+Plot of by birth month by province
+
+```{r}
+can_month_prov <- cannhlbirth %>%
+  filter(
+    birth_country == "CAN",
+    !is.na(birth_month),
+    !is.na(birth_state_province)
+  ) %>%
+  count(birth_state_province, birth_month)
+
+ggplot(can_month_prov,
+       aes(x = birth_month, y = n)) +
+  geom_col() +
+  facet_wrap(~ birth_state_province, scales = "free_y") +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = "Birth Month Distribution of Canadian Hockey Players by Province", x = "Birth Month", y = "Number of Players")
+```
+
+# Modeling section
+Chi square test
+```{r}
+nhl_can <- subset(nhl_births, birth_country == "CAN")
+
+min_year <- min(canada_births$year, na.rm = TRUE)
+max_year <- max(canada_births$year, na.rm = TRUE)
+
+nhl_can <- subset(nhl_can, birth_year >= min_year & birth_year <= max_year)
+
+obs <- table(factor(nhl_can$birth_month, levels = 1:12))
+
+month_totals = aggregate(births ~ month, data = canada_births, FUN = sum)
+pop_month_births = month_totals$births
+names(pop_month_births) = month_totals$month
+pop_month_births <- pop_month_births[as.character(1:12)]
+pop_probs <- pop_month_births / sum(pop_month_births)
+
+chi_res <- chisq.test(x = obs, p = pop_probs)
+
+chi_res
+```
+
+Modeling player counts as a function of month with Poisson regression
+```{r}
+nhl_birth_month = data.frame(month = 1:12, count = as.vector(obs)
+m <- glm(count ~ 0 + as.factor(month),
+         offset = pop_probs,
+         family = poisson,
+         data = nhl_birth_month)
+
+summary(m)
+exp(coef(m))
