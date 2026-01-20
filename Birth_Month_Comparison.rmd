@@ -1,0 +1,34 @@
+---
+title: "Consulting 1/20"
+author: "Owen Gift"
+date: "2026-01-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("/Users/owengift/Desktop/Desktop/2025-26/Consulting/Data")
+canada_births = read.csv("canada_births_1991_2022.csv")
+nhl_births = read.csv("nhl_player_births.csv")
+```
+
+```{r}
+month_means = aggregate(births ~ month, data = canada_births, FUN = mean)
+month_means
+library(ggplot2)
+ggplot(month_means, aes(x = month, y = births)) + geom_line() + labs(title = "Mean Number of Births by Month", x = "Month", y = "Births")
+```
+
+There is a difference in the amount of births based on month of birth, but for our situation the difference is not effective. January, February, November, and December are the lowest number of births per month of the 12 months. This is good for our situation as the beginning and ending months are what we are looking at primarily.
+
+
+```{r}
+ggplot(canada_births, aes(x = year, y = births, group = month, color = month)) + geom_line() + scale_color_viridis_c() + labs(title = "Canada Births per Month Over Time", x = "Year", y = "Births", caption = "Color Scale based on Month of Birth on 1 to 12 scale")
+```
+
+The months all seem to follow the same trends, which is good. Again, looking at the beginning of the year months and end of the year months they are lower in value than the middle of the year months. The light shaded lines and darkest shaded lines are below the green and lighter blue lines showing that January, February, November, and December are similar in number of births and follow the same trend.
+
+
