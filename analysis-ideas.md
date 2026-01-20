@@ -1,3 +1,4 @@
+# Analysis Plan
 - Filter to just Canadian NHL players
 - Jan 1 - December 31 also corresponds to grades in school
 - Plots of first half vs. second half, plots by quarter, plotting by province - are patterns of first half vs. second half of year the same across provinces?
