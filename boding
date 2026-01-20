@@ -1,0 +1,10 @@
+births <- read.csv("canada_births_1991_2022.csv")
+
+births$month <- factor(births$month)
+births_month <- aggregate(births ~ month, data = births, mean)
+m <- glm(births ~ month,
+         family = poisson,
+         data = births_month)
+
+summary(m)
+exp(coef(m))
